@@ -1,3 +1,5 @@
 .ipynb_checkpoints/
 dataset/
 .directory
+
+__pycache__
