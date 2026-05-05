@@ -3,3 +3,7 @@ dataset/
 .directory
 
 __pycache__
+
+build/
+dist/
+run.spec

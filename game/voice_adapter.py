@@ -29,14 +29,18 @@ class VoiceAdapter:
 
     # ── Добавление нового примера ───────────────────────────────────
 
-    def add(self, label_idx: int):
+    def add(self, label_idx: int, conf: float):
         if self._features is None:
             return
 
-        self.embeddings.append((self._features.copy(), label_idx))
+        # только хорошие примеры
+        if conf < 0.69:
+            return
 
-        if len(self.embeddings) > self.max_samples:
-            self.embeddings.pop(0)
+        if len(self.embeddings) >= self.max_samples:
+            return
+
+        self.embeddings.append((self._features.copy(), label_idx))
 
     # ── Коррекция CNN вероятностей ───────────────────────────────────
 

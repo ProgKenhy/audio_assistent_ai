@@ -25,13 +25,13 @@ class Config:
     LABELS   = {"go": 0, "stop": 1, "left": 2, "right": 3, "noise": 4}
     COMMANDS = ["go", "stop", "left", "right", "noise"]
     
-    VAD_THRESHOLD = 0.7
+    VAD_THRESHOLD = 0.69
 
     COMMAND_THRESHOLDS = {
         "go":    0.60,
-        "stop":  0.70,
-        "left":  0.70,
-        "right": 0.70,
+        "stop":  0.69,
+        "left":  0.69,
+        "right": 0.69,
         "noise": 1.00,
     }
     
@@ -44,9 +44,18 @@ class Config:
     ACTIVE_USER = "sasha"
 
     # ── Модель ───────────────────────────────────────────────────────────
+    import os
+    import sys
+    
+
+    if hasattr(sys, "_MEIPASS"):
+        BASE_DIR = sys._MEIPASS
+    else:
+        BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
     DEVICE      = "cpu"
-    MODEL_PATH  = "models/best_model.pt"
-    SCALER_PATH = "models/scaler.pkl"
+    MODEL_PATH  = os.path.join(BASE_DIR, "models/best_model.pt")
+    SCALER_PATH = os.path.join(BASE_DIR, "models/scaler.pkl")
     ADAPTER_PATH = f"models/voice_{ACTIVE_USER}.pkl"
 
 

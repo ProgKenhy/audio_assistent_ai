@@ -10,9 +10,9 @@ import torch
 import sounddevice as sd
 import webrtcvad
 
-from config import Config
-from model  import MobileNet1D
-from voice_adapter import VoiceAdapter
+from .config import Config
+from .model  import MobileNet1D
+from .voice_adapter import VoiceAdapter
 
 
 class AudioEngine:
@@ -255,7 +255,7 @@ class AudioEngine:
                 self.command_q.put((label, conf, probs.copy(), accepted))
 
                 if accepted:
-                    self.adapter.add(pred)
+                    self.adapter.add(pred, conf)
 
                     # сохраняем периодически
                     if self.adapter.n_samples % 10 == 0:
