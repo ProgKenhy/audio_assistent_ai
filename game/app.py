@@ -327,23 +327,15 @@ class App:
                 break
             row_col = self._row_color(label, accepted)
 
-            if speaker:
-                spk_text = f"{speaker[:3]}"
-                spk_surf = self.font_xs.render(spk_text, True, Config.ACCENT_OK)
-                self.screen.blit(spk_surf, (px, y))
-                x_offset = 28
-            else:
-                x_offset = 0
-
             self.screen.blit(
-                self.font_s.render(f"{label.upper():<5}", True, row_col), (px + x_offset, y))
+                self.font_s.render(f"{label.upper():<5}", True, row_col), (px, y))
 
             self.screen.blit(
                 self.font_xs.render(f"{conf:.0%}", True, Config.TEXT_MUTED),
-                (px + 52 + x_offset, y + 2))
+                (px + 52, y + 2))
 
-            seg_w = max(1, (sw - 96 - x_offset) // len(Config.COMMANDS))
-            bx = px + 90 + x_offset
+            seg_w = max(1, (sw - 96) // len(Config.COMMANDS))
+            bx = px + 90
             win_i = int(probs.argmax())
             for i, p in enumerate(probs):
                 bc = (row_col if (i == win_i and accepted)
