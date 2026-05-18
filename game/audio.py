@@ -46,7 +46,7 @@ class AudioEngine:
             print(f"Образцов в профиле: {samples}")
         else:
             print(f"\nПользователь {user_id} не найден. Создаётся новый профиль.")
-            from multi_user_adapter import VoiceAdapter
+            from .multi_user_adapter import VoiceAdapter
             self.multi_adapter.adapters[user_id] = VoiceAdapter()
             self.multi_adapter.user_embeddings[user_id] = []
             self.current_speaker = user_id
