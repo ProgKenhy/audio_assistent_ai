@@ -39,7 +39,7 @@ class Config:
     GRID_SIZE   = 20
     BASE_FPS    = 4
     MAX_FPS     = 8
-    SCORE_FILE  = "best_score.txt"
+    SCORE_FILE  = "game/best_score.txt"
     HISTORY_LEN = 7   # строк в истории команд на экране
     ACTIVE_USER = "sasha"
 
