@@ -251,8 +251,9 @@ class AudioEngine:
                     adapter = self.multi_adapter.adapters[speaker]
                     adapter.set_features(embedding)
                     adapter.add(pred)
-                    self.multi_adapter._save_user(speaker)
-                    print(f"[{speaker}: {len(adapter.embeddings)}/{adapter.max_samples}]")
+                    if adapter.n_samples % 10 == 0:
+                        self.multi_adapter._save_user(speaker)
+                        print(f"[{speaker}: {len(adapter.embeddings)}/{adapter.max_samples}]")
 
                 self.command_q.put((label, conf, probs.copy(), accepted, speaker))
 

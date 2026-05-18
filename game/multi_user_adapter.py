@@ -37,6 +37,10 @@ class VoiceAdapter:
         knn_probs /= self.k
 
         return (1 - self.alpha) * cnn_probs + self.alpha * knn_probs
+    
+    @property
+    def n_samples(self):
+        return len(self.embeddings)
 
 
 class MultiUserVoiceAdapter:
