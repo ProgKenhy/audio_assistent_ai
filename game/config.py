@@ -10,15 +10,15 @@ class Config:
     BLOCK_SIZE  = 800          # 50 мс/чанк — нужно для webrtcvad
 
     # WebRTC VAD
-    WEBRTC_AGGRESSIVENESS = 2  # 0-3; поднять до 3 если много ложных срабатываний
+    WEBRTC_AGGRESSIVENESS = 3  # 0-3; поднять до 3 если много ложных срабатываний
     WEBRTC_FRAME_MS       = 10
     WEBRTC_FRAME_SAMPS    = SAMPLE_RATE * WEBRTC_FRAME_MS // 1000  # 160
 
     # VAD конечный автомат
-    MIN_SPEECH_CHUNKS = 2
+    MIN_SPEECH_CHUNKS = 4
     SILENCE_LIMIT     = 8
-    MAX_SPEECH_CHUNKS = 30
-    COOLDOWN_SEC      = 0.8
+    MAX_SPEECH_CHUNKS = 25
+    COOLDOWN_SEC      = 0.4
 
     # Sliding window + TTA
     SLIDE_STEP = 20
