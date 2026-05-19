@@ -1,6 +1,8 @@
-import sys
+import logging
+import os
 import random
 import collections
+import sys
 import time
 
 import numpy as np
@@ -11,12 +13,13 @@ from .audio import AudioEngine
 from .snake import Snake
 from .multi_user_adapter import MultiUserVoiceAdapter
 
+logger = logging.getLogger(__name__)
+
 
 class App:
     def __init__(self):
         pygame.init()
 
-        # Выбор пользователя
         self.user_id = self._select_user()
 
         self.info = pygame.display.Info()
@@ -54,47 +57,42 @@ class App:
         self.font_xs = pygame.font.SysFont("dejavusans", 14)
         self.clock = pygame.time.Clock()
 
-
     def _select_user(self) -> str:
-        """Выбор пользователя в консоли"""
         print("\n" + "=" * 50)
         print("AI SNAKE - ВЫБОР ПОЛЬЗОВАТЕЛЯ")
         print("=" * 50)
 
-        adapter = MultiUserVoiceAdapter(save_dir="users/")
+        adapter = MultiUserVoiceAdapter(save_dir=Config.USERS_DIR)
         users = adapter.get_user_list()
 
         if users:
             print("\nСуществующие пользователи:")
             for i, user in enumerate(users, 1):
-                stats = adapter.get_stats().get(user, {})
-                samples = stats.get('samples', 0)
+                samples = adapter.get_stats().get(user, {}).get("samples", 0)
                 print(f"  {i}. {user} ({samples} образцов)")
             print(f"  {len(users) + 1}. Создать нового пользователя")
 
             choice = input("\nВыберите номер: ").strip()
-
             try:
                 choice_num = int(choice)
                 if 1 <= choice_num <= len(users):
                     user_id = users[choice_num - 1]
                     print(f"\nВыбран пользователь: {user_id}")
                     return user_id
-            except:
+                if choice_num == len(users) + 1:
+                    return self._create_new_user()
+            except ValueError:
                 pass
 
         return self._create_new_user()
 
-
     def _create_new_user(self) -> str:
-        """Создание нового пользователя"""
         print("\nСОЗДАНИЕ НОВОГО ПОЛЬЗОВАТЕЛЯ")
         user_id = input("Введите ваше имя: ").strip()
         if not user_id:
             user_id = f"user_{int(time.time())}"
         print(f"Создан пользователь: {user_id}")
         return user_id
-
 
     def _get_food(self) -> tuple[int, int]:
         while True:
@@ -103,40 +101,54 @@ class App:
             if p not in self.snake.body:
                 return p
 
-
     def _load_best(self) -> int:
-        try:
-            return int(open(Config.SCORE_FILE).read())
-        except Exception:
-            return 0
-
+        path = Config.score_file(self.user_id)
+        if os.path.isfile(path):
+            try:
+                with open(path) as f:
+                    return int(f.read().strip())
+            except (OSError, ValueError):
+                pass
+        legacy = os.path.join(os.path.dirname(__file__), "best_score.txt")
+        if os.path.isfile(legacy):
+            try:
+                with open(legacy) as f:
+                    return int(f.read().strip())
+            except (OSError, ValueError):
+                pass
+        return 0
 
     def _save_best(self):
-        with open(Config.SCORE_FILE, "w") as f:
+        os.makedirs(Config.SCORES_DIR, exist_ok=True)
+        with open(Config.score_file(self.user_id), "w") as f:
             f.write(str(self.best))
 
+    def _quit(self):
+        self.audio.stop()
+        pygame.quit()
+        sys.exit()
 
     def run(self):
-        while True:
-            self._handle_events()
-            self._handle_commands()
-            self._step_game()
-            self.draw()
-            self.clock.tick(min(Config.BASE_FPS + self.score // 3, Config.MAX_FPS))
-
+        try:
+            while True:
+                self._handle_events()
+                self._handle_commands()
+                self._step_game()
+                self.draw()
+                self.clock.tick(
+                    min(Config.BASE_FPS + self.score // 3, Config.MAX_FPS))
+        finally:
+            self.audio.stop()
 
     def _handle_events(self):
         for e in pygame.event.get():
             if e.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
+                self._quit()
             if e.type == pygame.KEYDOWN:
                 if e.key == pygame.K_ESCAPE:
-                    pygame.quit()
-                    sys.exit()
+                    self._quit()
                 if e.key == pygame.K_r and self.over:
                     self._restart()
-
 
     def _handle_commands(self):
         while not self.audio.command_q.empty():
@@ -161,7 +173,6 @@ class App:
             elif label in ("left", "right") and not self.paused:
                 self.snake.turn(label)
 
-
     def _step_game(self):
         if self.paused or self.over:
             return
@@ -176,7 +187,6 @@ class App:
                 self.best = self.score
                 self._save_best()
 
-
     def _restart(self):
         self.snake.reset()
         self.food = self._get_food()
@@ -184,14 +194,12 @@ class App:
         self.over = False
         self.paused = False
 
-
     def draw(self):
         self.screen.fill(Config.BG)
         self._draw_field()
         self._draw_overlays()
         self._draw_sidebar()
         pygame.display.flip()
-
 
     def _draw_field(self):
         pygame.draw.rect(self.screen, Config.FIELD_BG, self.field_rect)
@@ -220,7 +228,6 @@ class App:
                  self.cell - 2, self.cell - 2),
                 border_radius=4)
 
-
     def _draw_overlays(self):
         if self.paused:
             s = self.font_l.render("ПАУЗА", True, Config.ACCENT_WARN)
@@ -230,7 +237,6 @@ class App:
             s = self.font_l.render("GAME OVER", True, Config.FOOD)
             self.screen.blit(s, (self.field_rect.centerx - s.get_width() // 2,
                                  self.field_rect.centery))
-
 
     def _draw_sidebar(self):
         px = self.info.current_w - self.side_w + 30
@@ -242,10 +248,12 @@ class App:
         y += 68
 
         self.screen.blit(
-            self.font_m.render(f"Счёт: {self.score}", True, Config.TEXT_MAIN), (px, y))
+            self.font_m.render(f"Счёт: {self.score}", True, Config.TEXT_MAIN),
+            (px, y))
         y += 30
         self.screen.blit(
-            self.font_m.render(f"Рекорд: {self.best}", True, Config.TEXT_MUTED), (px, y))
+            self.font_m.render(f"Рекорд: {self.best}", True, Config.TEXT_MUTED),
+            (px, y))
         y += 44
 
         self._hline(px, y, sw)
@@ -256,8 +264,8 @@ class App:
             row_col = self._row_color(lbl, acc)
 
             if speaker:
-                speaker_text = f"[{speaker}]"
-                speaker_surf = self.font_s.render(speaker_text, True, Config.ACCENT_OK)
+                speaker_surf = self.font_s.render(
+                    f"[{speaker}]", True, Config.ACCENT_OK)
                 self.screen.blit(speaker_surf, (px, y))
                 y += 18
 
@@ -299,7 +307,7 @@ class App:
         current_user = self.audio.current_speaker
         if current_user and current_user in self.audio.multi_adapter.adapters:
             adapter_obj = self.audio.multi_adapter.adapters[current_user]
-            n = len(adapter_obj.embeddings)
+            n = adapter_obj.n_samples
             mx = adapter_obj.max_samples
         else:
             n = 0
@@ -347,10 +355,8 @@ class App:
                                  border_radius=1)
             y += 22
 
-
     def _hline(self, x: int, y: int, w: int):
         pygame.draw.line(self.screen, Config.GRID, (x, y), (x + w, y))
-
 
     def _row_color(self, label: str, accepted: bool) -> tuple[int, int, int]:
         if accepted:
@@ -358,7 +364,6 @@ class App:
         if label == "noise":
             return Config.ACCENT_NOISE
         return Config.ACCENT_LOW
-
 
     def _draw_prob_bars(self, px: int, y: int, sw: int,
                         probs: np.ndarray, accepted: bool,
@@ -390,7 +395,3 @@ class App:
                 self.screen.blit(lbl, (
                     bx + (cell_w - 2 - lbl.get_width()) // 2,
                     y + height + 2))
-
-
-if __name__ == "__main__":
-    App().run()
