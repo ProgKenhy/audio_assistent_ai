@@ -1,8 +1,5 @@
-import numpy as np
 import torch
 import torch.nn as nn
-
-from .config import Config
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -88,56 +85,3 @@ class MobileNet1D(nn.Module):
     def is_compatible(state_dict: dict) -> bool:
         """Проверяет что веса от MobileNet1D, а не от старой AudioCNN."""
         return any("stem" in k or "blocks" in k for k in state_dict)
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# VoiceAdapter — kNN персонализация поверх CNN
-#
-# Собирает 256-мерные эмбеддинги (вход последнего Linear) через forward hook.
-# При каждом предсказании смешивает вероятности CNN с kNN по голосу пользователя.
-# Адаптируется автоматически — начинает помогать после ~10 уверенных команд.
-# ─────────────────────────────────────────────────────────────────────────────
-
-class VoiceAdapter:
-    def __init__(self, model: MobileNet1D, max_samples: int = 50,
-                 k: int = 5, alpha: float = 0.3):
-        self.max_samples = max_samples
-        self.k           = k
-        self.alpha       = alpha          # вес kNN (0 = только CNN, 1 = только kNN)
-        self.embeddings: list[tuple[np.ndarray, int]] = []
-        self._features: np.ndarray | None = None
-
-        # Hook захватывает вход последнего Linear = 256-мерный эмбеддинг
-        model.head[-1].register_forward_hook(self._hook)
-
-    def _hook(self, module, inp, out):
-        self._features = inp[0].detach().cpu().numpy()[0]
-
-    def add(self, label_idx: int):
-        """Запомнить текущий эмбеддинг с меткой команды."""
-        if self._features is None:
-            return
-        self.embeddings.append((self._features.copy(), label_idx))
-        if len(self.embeddings) > self.max_samples:
-            self.embeddings.pop(0)   # FIFO
-
-    def correct(self, cnn_probs: np.ndarray) -> np.ndarray:
-        """Скорректировать вероятности CNN через kNN. Если данных мало — вернуть как есть."""
-        if len(self.embeddings) < self.k or self._features is None:
-            return cnn_probs
-
-        embs   = np.array([e for e, _ in self.embeddings])
-        labels = np.array([l for _, l in self.embeddings])
-        dists  = np.linalg.norm(embs - self._features, axis=1)
-        top_k  = np.argsort(dists)[:self.k]
-
-        knn = np.zeros(len(Config.COMMANDS))
-        for i in top_k:
-            knn[labels[i]] += 1.0
-        knn /= self.k
-
-        return (1 - self.alpha) * cnn_probs + self.alpha * knn
-
-    @property
-    def n_samples(self) -> int:
-        return len(self.embeddings)
