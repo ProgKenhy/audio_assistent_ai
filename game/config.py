@@ -1,10 +1,13 @@
+import os
+import sys
+
+
 class Config:
     # ── Аудио ────────────────────────────────────────────────────────────
     SAMPLE_RATE = 16000
     N_MFCC      = 40
     MAX_FRAMES  = 100
     BLOCK_SIZE  = 800          # 50 мс/чанк — нужно для webrtcvad
-    
 
     # WebRTC VAD
     WEBRTC_AGGRESSIVENESS = 2  # 0-3; поднять до 3 если много ложных срабатываний
@@ -24,7 +27,7 @@ class Config:
     # Команды
     LABELS   = {"go": 0, "stop": 1, "left": 2, "right": 3, "noise": 4}
     COMMANDS = ["go", "stop", "left", "right", "noise"]
-    
+
     VAD_THRESHOLD = 0.69
 
     COMMAND_THRESHOLDS = {
@@ -34,20 +37,17 @@ class Config:
         "right": 0.69,
         "noise": 1.00,
     }
-    
+
     # ── Игра ─────────────────────────────────────────────────────────────
     GRID_SIZE   = 20
     BASE_FPS    = 4
     MAX_FPS     = 8
-    SCORE_FILE  = "game/best_score.txt"
-    HISTORY_LEN = 7   # строк в истории команд на экране
-    ACTIVE_USER = "sasha"
+    HISTORY_LEN = 7
+    USERS_DIR   = "users"
+    SCORES_DIR  = "game/scores"
+    COMMAND_QUEUE_MAX = 32
 
     # ── Модель ───────────────────────────────────────────────────────────
-    import os
-    import sys
-    
-
     if hasattr(sys, "_MEIPASS"):
         BASE_DIR = sys._MEIPASS
     else:
@@ -56,8 +56,12 @@ class Config:
     DEVICE      = "cpu"
     MODEL_PATH  = os.path.join(BASE_DIR, "models/best_model.pt")
     SCALER_PATH = os.path.join(BASE_DIR, "models/scaler.pkl")
-    ADAPTER_PATH = f"models/voice_{ACTIVE_USER}.pkl"
+    EMBEDDING_DIM = 256
 
+    @classmethod
+    def score_file(cls, user_id: str) -> str:
+        safe = "".join(c if c.isalnum() or c in "-_" else "_" for c in user_id)
+        return os.path.join(cls.SCORES_DIR, f"{safe}.txt")
 
     # ── Палитра ──────────────────────────────────────────────────────────
     BG          = (15,  15,  18)
